@@ -4,9 +4,11 @@ const cors = require('cors');
 const app = express();
 app.use(express.json());
 
-// Allow requests from your Netlify site
 app.use(cors({
-  origin: ['https://touchstoregigs.netlify.app', 'http://localhost'],
+  origin: [
+    'https://touchstoregigs.pages.dev',
+    'http://localhost'
+  ],
 }));
 
 const DATAMART_KEY = "a87b5807959fcd976a08981d0b20a528fdfea6417435a710dc38f125c242a21d";
@@ -15,6 +17,7 @@ const DATAMART_URL = "https://api.datamartgh.shop/api/developer";
 // Purchase data
 app.post('/purchase', async (req, res) => {
   try {
+    console.log('Purchase request:', JSON.stringify(req.body));
     const response = await fetch(`${DATAMART_URL}/purchase`, {
       method: 'POST',
       headers: {
@@ -24,8 +27,10 @@ app.post('/purchase', async (req, res) => {
       body: JSON.stringify(req.body),
     });
     const data = await response.json();
+    console.log('Data Mart response:', JSON.stringify(data));
     res.status(response.status).json(data);
   } catch (e) {
+    console.error('Purchase error:', e.message);
     res.status(500).json({ status: 'error', message: e.message });
   }
 });
@@ -50,14 +55,29 @@ app.get('/balance', async (req, res) => {
       headers: { 'X-API-Key': DATAMART_KEY },
     });
     const data = await response.json();
+    console.log('Balance:', JSON.stringify(data));
     res.status(response.status).json(data);
   } catch (e) {
     res.status(500).json({ status: 'error', message: e.message });
   }
 });
 
-// Health check
-app.get('/', (req, res) => res.json({ status: 'Touch Store proxy running' }));
+// Get available data packages
+app.get('/packages', async (req, res) => {
+  try {
+    const network = req.query.network || 'YELLO';
+    const response = await fetch(`${DATAMART_URL}/data-packages?network=${network}`, {
+      headers: { 'X-API-Key': DATAMART_KEY },
+    });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (e) {
+    res.status(500).json({ status: 'error', message: e.message });
+  }
+});
+
+// Health check + keep-alive
+app.get('/', (req, res) => res.json({ status: 'Touch Store proxy running ✅' }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
